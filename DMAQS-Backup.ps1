@@ -12,7 +12,7 @@
   TODO:
   - Determine level of error-handling required (write to log, generate email, 24/7)
   - General cleanup
-  - 
+  - Improve behaviour of try/catch statements
 #>
 
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
