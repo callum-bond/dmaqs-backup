@@ -93,8 +93,8 @@ Function uploadToS3 {
     #>
 
     Try {
-        Foreach ($f in "*.csv.gz") {
-        Write-S3Object -BucketName Vlocity_Incoming_Logs_Test -File $f -Key $f -CannedACLName public-read
+        Foreach ($f in "C/Temp/Extract/test_file.txt") {
+        Write-S3Object -BucketName testinri -File $f -Key $f -CannedACLName public-read
         Write-Output "Uploaded $f."
         # logWrite "Uploaded $f."
     }
@@ -107,9 +107,6 @@ Function uploadToS3 {
 
 Function archiveData {
     # Create time-stamped folder and echo uploaded logs there
-    <#
-    # TODO: Find nicer way of detecting newly created folder and moving logs there
-    #>
     Try {
         $New_Dest = New-Item -ItemType Directory -Path "$dest\Uploaded_To_S3_$((Get-Date).ToString('yyyyMMdd'))"
         Get-ChildItem -Path $src -Recurse -Include *.txt | Move-Item -Force -Destination $New_Dest
@@ -124,11 +121,6 @@ Function archiveData {
 
 Function startDMAQS {
     # Once all complete, restart DMAQS
-
-    <# TODO:
-    # Determine a more robust way to find if DMAQS can be restarted
-    #> 
-
     If ((Get-ChildItem $src -Force | Select-Object -First 1 |Measure-Object).Count -eq 0) {
         # Start-Process -Name "DMAQS"
         Write-Output "DMAQS service started."
@@ -188,7 +180,7 @@ queryDMAQS
 
 truncateData
 
-# uploadToS3
+uploadToS3
 
 archiveData
 
