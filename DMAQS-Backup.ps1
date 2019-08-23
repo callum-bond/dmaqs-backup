@@ -9,10 +9,10 @@
   Creation Date:  19/08/2019
   Purpose/Change: Initial script development
 
-  # TODO:
-  - Fix up logging
-  - Test if uploads to S3
-  - Confirm correct calling of batch scripts
+  TODO:
+  - Determine if error handling can write to log without alert / write log and alert stakeholder / business critical alert
+  - Improve error handling (more details)
+  - Clean things up
 #>
 
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
@@ -26,15 +26,14 @@ $ErrorActionPreference = "Stop"
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
 # Name and location of logs
-# $logs = "C:\Temp\Logs"
+$log = "D:\log\log.txt"
+$logFile = "D:\log"
+
 # $logFile = New-Item -ItemType Directory -Path "$logs\Log_$((Get-Date).ToString('yyyyMMdd'))"
 
 # File locations
 $src = "C:\Temp\Extract"
 $dest = "C:\Temp\Extract_Archive"
-
-# $out = C:Pathfile.bat
-
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 
@@ -48,13 +47,11 @@ Function stopDMAQS {
         Write-Output "DMAQS service cannot be stopped at this time. Retrying in 30 seconds."
         Start-Sleep -Seconds 30
         stopDMAQS
-        # logWrite "DMAQS failed to stop... Retrying in 30 seconds."
         }    
 }
 
 Function queryDMAQS {
-# Query DMAQS database.
-# Version 1: Call existing batch script and pipe output to $out variable.
+# Query DMAQS
     Try {
         # D:/Util/extract_cars.bat
         C:/Temp/Scripts/test_create.bat
@@ -64,23 +61,24 @@ Function queryDMAQS {
     
     Catch {
         Write-Output "Query failed."
-        # logWrite "Query failed."
+        $_.Exception | Out-File $log -Append
+        Break
         # emailAlert
         Exit
     }
 }
 
 Function truncateData {
+    # Tread carefully here!
     Try {
-    # D:/Util/truncate_vlocity_log.bat
-    C:/Temp/Scripts/test_rename.bat
-    Write-Output "Logs truncated."
-    # log
+        # D:/Util/truncate_vlocity_log.bat
+        C:/Temp/Scripts/test_rename.bat
+        Write-Output "Logs truncated."
 }
 
     Catch {
-    Write-Output "Something failed."
-    Exit
+        $_.Exception | Out-File $log -Append
+        Exit
     }
 }
 
@@ -93,15 +91,14 @@ Function uploadToS3 {
     #>
 
     Try {
-        Foreach ($f in "C/Temp/Extract/test_file.txt") {
-        Write-S3Object -BucketName testinri -File $f -Key $f -CannedACLName public-read
+        Foreach ($f in "C:/Temp/Extract/test_file.txt") {
+        Write-S3Object -BucketName REPLACE_ME -File $f -Key $f -CannedACLName public-read
         Write-Output "Uploaded $f."
-        # logWrite "Uploaded $f."
     }
         } Catch {
-        Write-Output "File $f failed to upload."
-        # logWrite "File $f failed to upload."
-        # emailAlert
+                $_.Exception | Out-File $log -Append
+                Write-Output "Failed to upload to S3."
+                # emailAlert
     }
 }
 
@@ -111,10 +108,9 @@ Function archiveData {
         $New_Dest = New-Item -ItemType Directory -Path "$dest\Uploaded_To_S3_$((Get-Date).ToString('yyyyMMdd'))"
         Get-ChildItem -Path $src -Recurse -Include *.txt | Move-Item -Force -Destination $New_Dest
         Write-Output "Logs moved to D:/Extract_Archive."
-        # logWrite "Logs moved to folder." 
     } Catch {
-        Write-Output "Failed to move item to archive folder."
-        # logWrite "Failed to move item to archive folder."
+        $_.Exception | Out-File $log -Append
+        Write-Output "Failed to archive."
         # emailAlert
     }
 }
@@ -124,11 +120,11 @@ Function startDMAQS {
     If ((Get-ChildItem $src -Force | Select-Object -First 1 |Measure-Object).Count -eq 0) {
         # Start-Process -Name "DMAQS"
         Write-Output "DMAQS service started."
-        # logWrite "DMAQS service started."
         Exit
     } Else {
-    # Fix this up
         # emailAlert
+        $_.Exception | Out-File $log -Append
+        Write-Output "DMAQS started."
         Exit
     }
 }
@@ -156,21 +152,7 @@ Function emailAlert($emailTo) {
     $smtp.Send($emailFrom, $emailTo, $subject, $message) 
 } 
 
-# Fix this
-
-<# 
-Function logWrite {
-    # Write to log 
-    Param([string]]$logString])
-    Add-Content $logFile -value $logstring
-    }
-
-#>
-
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
-
-# Start logging
-
 
 # Call functions
 
