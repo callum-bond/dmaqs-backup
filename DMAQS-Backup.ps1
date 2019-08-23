@@ -10,9 +10,9 @@
   Purpose/Change: Initial script development
 
   TODO:
-  - Determine if error handling can write to log without alert / write log and alert stakeholder / business critical alert
-  - Improve error handling (more details)
-  - Clean things up
+  - Determine level of error-handling required (write to log, generate email, 24/7)
+  - General cleanup
+  - 
 #>
 
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
@@ -134,8 +134,8 @@ Function Email-Alert($emailTo) {
         IT
 "@        
  
-    $emailFrom = "Callum.Bond@kineticit.com.au"
-    $emailTo = "Callumbond199@gmail.com"
+    $emailFrom = ""
+    $emailTo = ""
     $subject="Alert - DMAQ Backup Failed"
     $smtpserver="smtp-mail.outlook.com"
     $smtp=New-Object Net.Mail.SmtpClient($smtpServer) 
