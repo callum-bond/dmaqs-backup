@@ -27,20 +27,20 @@ $ErrorActionPreference = "Stop"
 
 # Name and location of logs
 $log = "D:\log\log.txt"
-$logFile = "D:\log"
+$logFile = "D:\Log"
 
 # $logFile = New-Item -ItemType Directory -Path "$logs\Log_$((Get-Date).ToString('yyyyMMdd'))"
 
 # File locations
-$src = "D:\Util\Extract"
-$dest = "D:\Util\Extract_Archive"
+$src = "D:\Extract"
+$dest = "D:\Extract_Archives"
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 
 Function Stop-DMAQS {
-# Stop DMAQS service once safe to do so
-    if ((Get-ChildItem $src -Force | Select-Object -First 1 | Measure-Object).Count -eq 0) {
-        # Stop-Process -Name "DMAQS"
+# Check DMAQS output folder for *.x40 folders. Stop service if none are found.
+    if ((Get-ChildItem $src -Filter *.x40 | Select-Object -First 1 | Measure-Object).Count -eq 0) {
+        Stop-Service -Name "DMAQS"
         Write-Output "DMAQS stopped."
 } Else {
         Write-Output "DMAQS service cannot be stopped at this time. Retrying in 30 seconds."
@@ -52,7 +52,7 @@ Function Stop-DMAQS {
 Function Query-DMAQS {
 # Query DMAQS
     Try {
-        D:/Util/extract_cars.bat
+        D:/Utils/extract_cars.bat
         Write-Output "Extracted DMAQS data to D:/Extract."
     }
     
@@ -66,7 +66,7 @@ Function Query-DMAQS {
 Function Truncate-Data {
     # Tread carefully here!
     Try {
-        D:/Util/truncate_vlocity_log.bat
+        D:/Utils/truncate_vlocity_log.bat
         Write-Output "Logs truncated."
 }
     Catch {
@@ -84,8 +84,8 @@ Function Upload-ToS3 {
     #>
 
     Try {
-        Foreach ($f in 'C:/Temp/Extract/test_file.txt') {
-        Write-S3Object -BucketName REPLACE_ME -File $f -Key $f -CannedACLName public-read
+        Foreach ($f in 'D:\Extract\*.csv.gz') {
+        Write-S3Object -BucketName vlocity_log_incoming_test -File $f -Key $f -CannedACLName public-read
         Write-Output "Uploaded $f."
     }
         } Catch {
@@ -97,9 +97,9 @@ Function Upload-ToS3 {
 Function Archive-Data {
     # Create time-stamped folder and echo uploaded logs there
     Try {
-        $New_Destination = New-Item -ItemType Directory -Path "$dest\Uploaded_To_S3_$((Get-Date).ToString('yyyyMMdd'))"
-        Get-ChildItem -Path $src -Recurse -Include *.txt | Move-Item -Force -Destination $New_Destination
-        Write-Output 'Logs moved to D:/Extract_Archive.'
+        $New_Destination = New-Item -ItemType Directory -Path "$dest\Moved_To_S3_$((Get-Date).ToString('yyyyMMdd'))"
+        Get-ChildItem -Path $src -Recurse -Include *.csv.gz | Move-Item -Force -Destination $New_Destination
+        Write-Output 'Logs moved to D:/Extract_Archives.'
     } Catch {
         Write-Log
         Write-Output 'Failed to archive.'
@@ -109,7 +109,7 @@ Function Archive-Data {
 Function Start-DMAQS {
     # Once all complete, restart DMAQS
     If ((Get-ChildItem $src -Force | Select-Object -First 1 |Measure-Object).Count -eq 0) {
-        # Start-Process -Name "DMAQS"
+        Start-Service -Name "DMAQS"
         Write-Output 'DMAQS service started.'
         Exit
     } Else {
@@ -119,11 +119,11 @@ Function Start-DMAQS {
     }
 }
 
+<# 
+
 Function Email-Alert($emailTo) {
 # Send email to stakeholders if unexpected error encountered
-<#
-# TODO: Find way to authenticate with smtp server
-#>
+
     $message = @"
         Attention!
 
@@ -142,6 +142,8 @@ Function Email-Alert($emailTo) {
     $smtp.Send($emailFrom, $emailTo, $subject, $message) 
 } 
 
+#> 
+
 Function Get-TimeStamp {
     return "[{0:dd/MM/yy} {0:HH:mm:ss}]" -f (Get-Date)
 }
@@ -153,10 +155,10 @@ Function Write-Log {
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
-Stop-DMAQS
-Query-DMAQS
-Truncate-Data
+# Stop-DMAQS
+# Query-DMAQS
+# Truncate-Data
 Upload-ToS3
-Archive-Data
-Start-DMAQS
+# Archive-Data
+# Start-DMAQS
 
