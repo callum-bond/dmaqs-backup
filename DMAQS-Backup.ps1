@@ -41,9 +41,9 @@ Function Stop-DMAQS {
 # Check DMAQS output folder for *.x40 folders. Stop service if none are found.
     if ((Get-ChildItem $src -Filter *.x40 | Select-Object -First 1 | Measure-Object).Count -eq 0) {
         Stop-Service -Name "DMAQS"
-        Write-Output "DMAQS stopped."
+        Write-Output 'DMAQS stopped.'
 } Else {
-        Write-Output "DMAQS service cannot be stopped at this time. Retrying in 30 seconds."
+        Write-Output 'DMAQS service cannot be stopped at this time. Retrying in 30 seconds.'
         Start-Sleep -Seconds 30
         Stop-DMAQS
         }    
@@ -53,11 +53,11 @@ Function Query-DMAQS {
 # Query DMAQS
     Try {
         D:/Utils/extract_cars.bat
-        Write-Output "Extracted DMAQS data to D:/Extract."
+        Write-Output 'Extracted DMAQS data to D:/Extract.'
     }
     
     Catch {
-        Write-Output "Query failed."
+        Write-Output 'Query failed.'
         Write-Log
         Break
     }
@@ -67,7 +67,7 @@ Function Truncate-Data {
     # Tread carefully here!
     Try {
         D:/Utils/truncate_vlocity_log.bat
-        Write-Output "Logs truncated."
+        Write-Output 'Logs truncated.'
 }
     Catch {
         Write-Log
@@ -75,20 +75,17 @@ Function Truncate-Data {
     }
 }
 
-Function Upload-ToS3 {
-    # Upload to S3
-    
-    <# TODO: 
-    # Confirm successful upload to S3
-    # Consider building the catch statemnt to repeatedly attempt to upload to S3 until successful
-    #>
-
+Function Upload-ToS3 { 
     Try {
-        Foreach ($f in 'D:\Extract\*.csv.gz') {
-        Write-S3Object -BucketName vlocity_log_incoming_test -File $f -Key $f -CannedACLName public-read
-        Write-Output "Uploaded $f."
+        $results = Get-ChildItem $src -Recurse -Include "*.gz"
+        foreach ($path in $results) {
+        Write-Output $path
+        $fileName = [System.IO.Path]::GetFileName($path)
+        Write-S3Object -BucketName vlocity_log_incoming_test -File $path -Key $fileName -ProfileName dmaq
+        }
     }
-        } Catch {
+
+    Catch {
             Write-Log
             Write-Output 'Failed to upload to S3.'
     }
@@ -108,12 +105,12 @@ Function Archive-Data {
 
 Function Start-DMAQS {
     # Once all complete, restart DMAQS
-    If ((Get-ChildItem $src -Force | Select-Object -First 1 |Measure-Object).Count -eq 0) {
+    If ((Get-ChildItem $src -Force | Select-Object -First 1 | Measure-Object).Count -eq 0) {
         Start-Service -Name "DMAQS"
         Write-Output 'DMAQS service started.'
         Exit
     } Else {
-        Write-Output "Could not restart DMAQS. Retrying in 30 seconds."
+        Write-Output 'Could not restart DMAQS. Retrying in 30 seconds.'
         Start-Sleep -Seconds 30
         Start-DMAQS
     }
