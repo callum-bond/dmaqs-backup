@@ -30,7 +30,7 @@ $S3BucketName = 'vline-datalake/raw_Dmaq'
  
 Function Stop-DMAQS {
 # Check DMAQS output folder for *.x40 files. Stop service if none are found.
-    if ((Get-ChildItem $src -Filter *.x40 | Select-Object -First 1 | Measure-Object).Count -eq 0) {
+    If ((Get-ChildItem $src -Filter *.x40 | Select-Object -First 1 | Measure-Object).Count -eq 0) {
         Stop-Service -Name "DMAQS"
         Get-Timestamp | Out-File $log -Append
         Write-Output 'DMAQS stopped.' | Tee-Object -Filepath $log -Append
@@ -47,9 +47,7 @@ Function Query-DMAQS {
         Start-Process "cmd.exe" "/c D:/Utils/extract_cars.bat" -Wait
         Get-Timestamp | Out-File $log -Append
         Write-Output 'Extracted DMAQS data to D:/Extract.' | Tee-Object -Filepath $log -Append
-    }
-   
-    Catch {
+    } Catch {
         Write-Output 'Query failed.'
         Write-Log
         Exit
@@ -58,10 +56,10 @@ Function Query-DMAQS {
  
 Function Truncate-Data {
 # Check for and truncate .gz files, otherwise restart DMAQS and exit
-    if ((Get-ChildItem $src -Filter *.gz | Select-Object -First 1| Measure-Object).Count -ne 0) {
+    If ((Get-ChildItem $src -Filter *.gz | Select-Object -First 1| Measure-Object).Count -ne 0) {
         Start-Process "cmd.exe" "/c D:/Utils/truncate_vlocity_log.bat" -Wait
         Write-Output 'Logs truncated.' | Tee-Object -Filepath $log -Append
-    } else {
+    } Else {
         Get-Timestamp | Out-File $log -Append
         Write-Output 'No data to be truncated. Restarting DMAQS.' | Tee-Object -Filepath $log -Append
         Start-DMAQS
@@ -78,9 +76,7 @@ Function Upload-ToS3 {
         Get-Timestamp | Out-File $log -Append
         Write-Output 'Uploaded to S3:' $fileName | Tee-Object -Filepath $log -Append
         }
-    }
- 
-    Catch {
+    } Catch {
             Write-Log
             Write-Output 'Failed to upload to S3: ' $_.Exception.Message
     }
