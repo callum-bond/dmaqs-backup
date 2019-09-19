@@ -1,6 +1,6 @@
 <#
 .DESCRIPTION
-  Automation script to extract, transform and load data from DMAQS database.
+  Automation script to extract, transform and load data from DMAQS database and upload to AWS Data Lake.
  
 .NOTES
   Version:        1.0
@@ -126,9 +126,9 @@ Function Write-Log {
  
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
  
-# Stop-DMAQS
-# Query-DMAQS
-# Truncate-Data
+Stop-DMAQS
+Query-DMAQS
+Truncate-Data
 Upload-ToS3
-# Archive-Data
-# Start-DMAQS
+Archive-Data
+Start-DMAQS
